@@ -184,15 +184,22 @@ class MySecurity : public BLESecurityCallbacks {
       mac.toUpperCase();
       
       if(whitelistMacs.indexOf(mac) < 0) {
-          if(whitelistMacs.length() > 0 && !whitelistMacs.endsWith(",")) whitelistMacs += ",";
-          whitelistMacs += mac;
-          preferences.begin("bike", false);
-          preferences.putString("macs", whitelistMacs);
-          preferences.end();
-          addLog("New MAC Whitelisted: " + mac);
+          if (pairingMode) {
+              if(whitelistMacs.length() > 0 && !whitelistMacs.endsWith(",")) whitelistMacs += ",";
+              whitelistMacs += mac;
+              preferences.begin("bike", false);
+              preferences.putString("macs", whitelistMacs);
+              preferences.end();
+              addLog("New MAC Whitelisted: " + mac);
+              pairingMode = false;
+              beepUnlock();
+          } else {
+              addLog("Pairing Mode OFF. Rejected new MAC: " + mac);
+          }
+      } else {
+          addLog("Whitelisted Phone Connected! Unlocking...");
+          beepUnlock();
       }
-      pairingMode = false;
-      beepUnlock();
     } else {
       addLog("Pairing failed!");
     }
@@ -208,15 +215,22 @@ class MySecurity : public BLESecurityCallbacks {
       mac.toUpperCase();
       
       if(whitelistMacs.indexOf(mac) < 0) {
-          if(whitelistMacs.length() > 0 && !whitelistMacs.endsWith(",")) whitelistMacs += ",";
-          whitelistMacs += mac;
-          preferences.begin("bike", false);
-          preferences.putString("macs", whitelistMacs);
-          preferences.end();
-          addLog("New MAC Whitelisted: " + mac);
+          if (pairingMode) {
+              if(whitelistMacs.length() > 0 && !whitelistMacs.endsWith(",")) whitelistMacs += ",";
+              whitelistMacs += mac;
+              preferences.begin("bike", false);
+              preferences.putString("macs", whitelistMacs);
+              preferences.end();
+              addLog("New MAC Whitelisted: " + mac);
+              pairingMode = false;
+              beepUnlock();
+          } else {
+              addLog("Pairing Mode OFF. Rejected new MAC: " + mac);
+          }
+      } else {
+          addLog("Whitelisted Phone Connected! Unlocking...");
+          beepUnlock();
       }
-      pairingMode = false;
-      beepUnlock();
     } else {
       addLog("Pairing failed!");
     }
@@ -224,14 +238,8 @@ class MySecurity : public BLESecurityCallbacks {
 #endif
 };
 
-void enableBluetoothPairing() {
-  if (pairingMode) return;
-  Serial.println("Starting BLE Pairing Mode...");
-  
-  // Generate random 6-digit PIN
+void setupBLE() {
   pairingPIN = random(100000, 999999);
-  addLog("BLE Pairing started. PIN: " + String(pairingPIN));
-  
   BLEDevice::init("Bike_Pair");
   pServer = BLEDevice::createServer();
   pServer->setCallbacks(new MyServerCallbacks());
@@ -241,6 +249,7 @@ void enableBluetoothPairing() {
   pSecurity->setAuthenticationMode(ESP_LE_AUTH_REQ_SC_BOND);
   pSecurity->setCapability(ESP_IO_CAP_OUT);
   pSecurity->setInitEncryptionKey(ESP_BLE_ENC_KEY_MASK | ESP_BLE_ID_KEY_MASK);
+  pSecurity->setRespEncryptionKey(ESP_BLE_ENC_KEY_MASK | ESP_BLE_ID_KEY_MASK);
   
   BLEService *pService = pServer->createService("180A");
   BLECharacteristic *pChar = pService->createCharacteristic("2A29", BLECharacteristic::PROPERTY_READ);
@@ -254,7 +263,19 @@ void enableBluetoothPairing() {
   pAdvertising->setScanResponse(true);
   pAdvertising->start();
   
+  Serial.println("BLE Initialized and Advertising...");
+}
+
+void enableBluetoothPairing() {
+  if (pairingMode) return;
+  Serial.println("Starting BLE Pairing Mode...");
+  
+  // Generate random 6-digit PIN
+  pairingPIN = random(100000, 999999);
+  addLog("BLE Pairing started. PIN: " + String(pairingPIN));
+  
   pairingMode = true;
+  BLEDevice::startAdvertising(); // Ensure advertising is running
 }
 
 void goToDeepSleep() {
@@ -663,6 +684,8 @@ void setup() {
   btRange = preferences.getInt("bt", 2);
   whitelistMacs = preferences.getString("macs", "");
   preferences.end();
+  
+  setupBLE();
   
   esp_sleep_wakeup_cause_t wakeup_reason = esp_sleep_get_wakeup_cause();
   
