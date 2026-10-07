@@ -153,46 +153,11 @@ bool scanForAuthorizedBluetooth() {
 class MyServerCallbacks: public BLEServerCallbacks {
 #if defined(CONFIG_BLUEDROID_ENABLED)
     void onConnect(BLEServer* pServer, esp_ble_gatts_cb_param_t *param) {
-        char macStr[18];
-        snprintf(macStr, sizeof(macStr), "%02X:%02X:%02X:%02X:%02X:%02X",
-                 param->connect.remote_bda[0], param->connect.remote_bda[1],
-                 param->connect.remote_bda[2], param->connect.remote_bda[3],
-                 param->connect.remote_bda[4], param->connect.remote_bda[5]);
-        String mac = String(macStr);
-        mac.toUpperCase();
-        
-        if(whitelistMacs.indexOf(mac) < 0) {
-            if(whitelistMacs.length() > 0 && !whitelistMacs.endsWith(",")) whitelistMacs += ",";
-            whitelistMacs += mac;
-            preferences.begin("bike", false);
-            preferences.putString("macs", whitelistMacs);
-            preferences.end();
-            addLog("New MAC Whitelisted: " + mac);
-        }
         BLEDevice::getAdvertising()->stop();
-        pairingMode = false;
-        beepUnlock();
     }
 #elif defined(CONFIG_NIMBLE_ENABLED)
     void onConnect(BLEServer* pServer, ble_gap_conn_desc *desc) {
-        char macStr[18];
-        snprintf(macStr, sizeof(macStr), "%02X:%02X:%02X:%02X:%02X:%02X",
-                 desc->peer_id_addr.val[5], desc->peer_id_addr.val[4], desc->peer_id_addr.val[3],
-                 desc->peer_id_addr.val[2], desc->peer_id_addr.val[1], desc->peer_id_addr.val[0]);
-        String mac = String(macStr);
-        mac.toUpperCase();
-        
-        if(whitelistMacs.indexOf(mac) < 0) {
-            if(whitelistMacs.length() > 0 && !whitelistMacs.endsWith(",")) whitelistMacs += ",";
-            whitelistMacs += mac;
-            preferences.begin("bike", false);
-            preferences.putString("macs", whitelistMacs);
-            preferences.end();
-            addLog("New MAC Whitelisted: " + mac);
-        }
         BLEDevice::getAdvertising()->stop();
-        pairingMode = false;
-        beepUnlock();
     }
 #endif
     void onDisconnect(BLEServer* pServer) {}
@@ -206,11 +171,51 @@ class MySecurity : public BLESecurityCallbacks {
 
 #if defined(CONFIG_BLUEDROID_ENABLED)
   void onAuthenticationComplete(esp_ble_auth_cmpl_t cmpl){
-    // MAC is already captured in onConnect
+    if(cmpl.success){
+      char macStr[18];
+      snprintf(macStr, sizeof(macStr), "%02X:%02X:%02X:%02X:%02X:%02X",
+               cmpl.bd_addr[0], cmpl.bd_addr[1], cmpl.bd_addr[2],
+               cmpl.bd_addr[3], cmpl.bd_addr[4], cmpl.bd_addr[5]);
+      String mac = String(macStr);
+      mac.toUpperCase();
+      
+      if(whitelistMacs.indexOf(mac) < 0) {
+          if(whitelistMacs.length() > 0 && !whitelistMacs.endsWith(",")) whitelistMacs += ",";
+          whitelistMacs += mac;
+          preferences.begin("bike", false);
+          preferences.putString("macs", whitelistMacs);
+          preferences.end();
+          addLog("New MAC Whitelisted: " + mac);
+      }
+      pairingMode = false;
+      beepUnlock();
+    } else {
+      addLog("Pairing failed!");
+    }
   }
 #elif defined(CONFIG_NIMBLE_ENABLED)
   void onAuthenticationComplete(ble_gap_conn_desc *desc){
-    // MAC is already captured in onConnect
+    if(desc->sec_state.bonded){
+      char macStr[18];
+      snprintf(macStr, sizeof(macStr), "%02X:%02X:%02X:%02X:%02X:%02X",
+               desc->peer_id_addr.val[5], desc->peer_id_addr.val[4], desc->peer_id_addr.val[3],
+               desc->peer_id_addr.val[2], desc->peer_id_addr.val[1], desc->peer_id_addr.val[0]);
+      String mac = String(macStr);
+      mac.toUpperCase();
+      
+      if(whitelistMacs.indexOf(mac) < 0) {
+          if(whitelistMacs.length() > 0 && !whitelistMacs.endsWith(",")) whitelistMacs += ",";
+          whitelistMacs += mac;
+          preferences.begin("bike", false);
+          preferences.putString("macs", whitelistMacs);
+          preferences.end();
+          addLog("New MAC Whitelisted: " + mac);
+      }
+      pairingMode = false;
+      beepUnlock();
+    } else {
+      addLog("Pairing failed!");
+    }
   }
 #endif
 };
