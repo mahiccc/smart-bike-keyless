@@ -270,9 +270,7 @@ void enableBluetoothPairing() {
   if (pairingMode) return;
   Serial.println("Starting BLE Pairing Mode...");
   
-  // Generate random 6-digit PIN
-  pairingPIN = random(100000, 999999);
-  addLog("BLE Pairing started. PIN: " + String(pairingPIN));
+  addLog("BLE Pairing Mode ON. PIN: " + String(pairingPIN));
   
   pairingMode = true;
   BLEDevice::startAdvertising(); // Ensure advertising is running
