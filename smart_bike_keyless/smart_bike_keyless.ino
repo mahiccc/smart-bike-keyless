@@ -25,9 +25,11 @@
 #define VIBRATION_SENSOR  D5
 #define VIBRATION_GPIO    GPIO_NUM_6  // D5 on XIAO ESP32S3 is GPIO6
 
+#include "secrets.h"
+
 // ─────────────────────── CONFIG ────────────────────────────────
 const char* AP_SSID = "SmartBike-Keyless";
-const char* AP_PASS = "kkl12345";
+const char* AP_PASS = SECRET_WIFI_PASS;
 const byte DNS_PORT = 53;
 #define AUTO_LOCK_TIMEOUT 300000 // 5 minutes
 
