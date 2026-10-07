@@ -350,10 +350,11 @@ const char MAIN_PAGE[] PROGMEM = R"rawliteral(
     </select>
 
     <h4>Whitelisted BT MACs:</h4>
-    <input type="text" id="macInput" placeholder="MAC Addresses">
-    <button class="btn btn-blue" onclick="saveMac()">Save Manual MACs</button>
+    <div id="macList" style="margin-bottom: 10px;"></div>
+    <input type="text" id="macInput" placeholder="Add New MAC Address">
+    <button class="btn btn-blue" onclick="saveMac()">Add Manual MAC</button>
     <button class="btn btn-green" onclick="fetchStatus()">Refresh Whitelist</button>
-    <button class="btn btn-red" onclick="cmd('clear_macs')" style="margin-top:10px;">Clear Whitelist</button>
+    <button class="btn btn-red" onclick="cmd('clear_macs')" style="margin-top:10px;">Clear All MACs</button>
     <br><hr style="border-color:#333;"><br>
     
     <button class="btn btn-yellow" onclick="startPairing()">Enable Bluetooth Discovery</button>
@@ -375,8 +376,18 @@ const char MAIN_PAGE[] PROGMEM = R"rawliteral(
       document.getElementById('autoUnlockToggle').checked = data.auto_unlock;
       document.getElementById('vibSelect').value = data.vib_sens;
       document.getElementById('btSelect').value = data.bt_sens;
-      document.getElementById('macInput').value = data.macs;
       
+      let macsArray = data.macs.split(',').filter(m => m.trim().length > 0);
+      let macHtml = '';
+      macsArray.forEach(mac => {
+        macHtml += `<div style="background:#333; padding:10px; margin-bottom:5px; border-radius:5px; display:flex; justify-content:space-between; align-items:center;">
+                     <span style="font-family:monospace;">${mac}</span>
+                     <button style="background:#ff4d4d; color:white; border:none; padding:5px 10px; border-radius:3px; cursor:pointer; font-weight:bold;" onclick="deleteMac('${mac}')">Delete</button>
+                   </div>`;
+      });
+      document.getElementById('macList').innerHTML = macHtml;
+      
+
       if(data.bt_nearby) {
         document.getElementById('btBadge').className = "badge badge-green";
         document.getElementById('btBadge').innerText = "📱 Phone Nearby";
@@ -419,9 +430,27 @@ const char MAIN_PAGE[] PROGMEM = R"rawliteral(
     }
     
     async function saveMac() {
-      const macs = document.getElementById('macInput').value;
-      await fetch('/set_mac?v=' + encodeURIComponent(macs));
-      alert("MACs Saved!");
+      const res = await fetch('/status');
+      const data = await res.json();
+      let macsArray = data.macs.split(',').filter(m => m.trim().length > 0);
+      
+      const newMac = document.getElementById('macInput').value.trim().toUpperCase();
+      if (newMac && !macsArray.includes(newMac)) {
+        macsArray.push(newMac);
+        await fetch('/set_mac?v=' + encodeURIComponent(macsArray.join(',')));
+        document.getElementById('macInput').value = '';
+        fetchStatus();
+      }
+    }
+    
+    async function deleteMac(macToRemove) {
+      const res = await fetch('/status');
+      const data = await res.json();
+      let macsArray = data.macs.split(',').filter(m => m.trim().length > 0);
+      
+      macsArray = macsArray.filter(m => m !== macToRemove);
+      await fetch('/set_mac?v=' + encodeURIComponent(macsArray.join(',')));
+      fetchStatus();
     }
     
     async function startPairing() {
