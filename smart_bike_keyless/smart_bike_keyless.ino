@@ -201,7 +201,7 @@ class MySecurity : public BLESecurityCallbacks {
           beepUnlock();
       }
     } else {
-      addLog("Pairing failed!");
+      addLog("Pairing failed! Reason: 0x" + String(cmpl.fail_reason, HEX));
     }
   }
 #elif defined(CONFIG_NIMBLE_ENABLED)
