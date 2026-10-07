@@ -375,7 +375,10 @@ const char MAIN_PAGE[] PROGMEM = R"rawliteral(
     <br><hr style="border-color:#333;"><br>
     
     <button class="btn btn-yellow" onclick="startPairing()">Enable Bluetooth Discovery</button>
-    <div id="pinBox" class="pin-box"></div>
+    <div id="pinBoxContainer" style="display:none; align-items:center; justify-content:center; gap:10px; margin-top:10px;">
+      <div id="pinBox" class="pin-box" style="margin-top:0; display:block;"></div>
+      <button class="btn btn-blue" style="width:auto; padding:10px 20px; font-size:16px;" onclick="copyPin()">Copy</button>
+    </div>
     <p style="font-size:12px; color:#aaa; margin-top:5px;">Connect your phone to 'Bike_Pair' and enter this PIN. Your MAC will be saved automatically.</p>
   </div>
 
@@ -414,10 +417,10 @@ const char MAIN_PAGE[] PROGMEM = R"rawliteral(
       }
       
       if(data.pairing) {
-        document.getElementById('pinBox').style.display = "block";
+        document.getElementById('pinBoxContainer').style.display = "flex";
         document.getElementById('pinBox').innerText = data.pin;
       } else {
-        document.getElementById('pinBox').style.display = "none";
+        document.getElementById('pinBoxContainer').style.display = "none";
       }
       
       const logRes = await fetch('/logs');
@@ -427,6 +430,23 @@ const char MAIN_PAGE[] PROGMEM = R"rawliteral(
     
     function showOverlay() { document.getElementById('overlay').style.display = 'flex'; }
     function hideOverlay() { document.getElementById('overlay').style.display = 'none'; }
+
+    async function copyPin() {
+      const pin = document.getElementById('pinBox').innerText;
+      if(navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(pin);
+        alert("PIN copied to clipboard!");
+      } else {
+        // Fallback for captive portals that don't support clipboard API
+        const tempInput = document.createElement("input");
+        tempInput.value = pin;
+        document.body.appendChild(tempInput);
+        tempInput.select();
+        document.execCommand("copy");
+        document.body.removeChild(tempInput);
+        alert("PIN copied to clipboard!");
+      }
+    }
 
     async function cmd(action) {
       showOverlay();
