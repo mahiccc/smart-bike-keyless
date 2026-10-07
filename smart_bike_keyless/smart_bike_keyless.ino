@@ -160,7 +160,11 @@ class MyServerCallbacks: public BLEServerCallbacks {
         BLEDevice::getAdvertising()->stop();
     }
 #endif
-    void onDisconnect(BLEServer* pServer) {}
+    void onDisconnect(BLEServer* pServer) {
+        if (pairingMode) {
+            BLEDevice::startAdvertising();
+        }
+    }
 };
 
 class MySecurity : public BLESecurityCallbacks {
@@ -310,9 +314,15 @@ const char MAIN_PAGE[] PROGMEM = R"rawliteral(
     .badge-green { background: #00e676; color: #000; }
     .badge-gray { background: #555; color: #fff; }
     .log-box { background: #111; padding: 10px; border-radius: 6px; font-family: monospace; font-size: 12px; text-align: left; height: 150px; overflow-y: auto; white-space: pre-wrap; }
+    .spinner { border: 4px solid rgba(255,255,255,0.3); border-top: 4px solid #fff; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
+  <div id="overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:9999; justify-content:center; align-items:center; flex-direction:column; color:white;">
+    <div class="spinner"></div>
+    <p style="margin-top:20px; font-weight:bold;">Processing...</p>
+  </div>
   <h2>🏍️ Smart Bike Portal</h2>
   
   <div class="card" id="statusCard">
@@ -415,28 +425,43 @@ const char MAIN_PAGE[] PROGMEM = R"rawliteral(
       document.getElementById('logBox').innerText = logData;
     }
     
+    function showOverlay() { document.getElementById('overlay').style.display = 'flex'; }
+    function hideOverlay() { document.getElementById('overlay').style.display = 'none'; }
+
     async function cmd(action) {
+      showOverlay();
       await fetch('/cmd?a=' + action);
-      fetchStatus();
+      await fetchStatus();
+      hideOverlay();
     }
     
     async function toggleDS() {
+      showOverlay();
       const val = document.getElementById('dsToggle').checked ? 1 : 0;
       await fetch('/set_ds?v=' + val);
+      await fetchStatus();
+      hideOverlay();
     }
     
     async function toggleAutoUnlock() {
+      showOverlay();
       const val = document.getElementById('autoUnlockToggle').checked ? 1 : 0;
       await fetch('/set_auto?v=' + val);
+      await fetchStatus();
+      hideOverlay();
     }
     
     async function updateSensSettings() {
+      showOverlay();
       const v = document.getElementById('vibSelect').value;
       const b = document.getElementById('btSelect').value;
       await fetch(`/set_sens?v=${v}&b=${b}`);
+      await fetchStatus();
+      hideOverlay();
     }
     
     async function saveMac() {
+      showOverlay();
       const res = await fetch('/status');
       const data = await res.json();
       let macsArray = data.macs.split(',').filter(m => m.trim().length > 0);
@@ -446,23 +471,28 @@ const char MAIN_PAGE[] PROGMEM = R"rawliteral(
         macsArray.push(newMac);
         await fetch('/set_mac?v=' + encodeURIComponent(macsArray.join(',')));
         document.getElementById('macInput').value = '';
-        fetchStatus();
+        await fetchStatus();
       }
+      hideOverlay();
     }
     
     async function deleteMac(macToRemove) {
+      showOverlay();
       const res = await fetch('/status');
       const data = await res.json();
       let macsArray = data.macs.split(',').filter(m => m.trim().length > 0);
       
       macsArray = macsArray.filter(m => m !== macToRemove);
       await fetch('/set_mac?v=' + encodeURIComponent(macsArray.join(',')));
-      fetchStatus();
+      await fetchStatus();
+      hideOverlay();
     }
     
     async function startPairing() {
+      showOverlay();
       await fetch('/start_pairing');
-      fetchStatus();
+      await fetchStatus();
+      hideOverlay();
     }
     
     fetchStatus();
