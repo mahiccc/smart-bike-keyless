@@ -43,12 +43,12 @@
 #include <Preferences.h>
 
 // ─────────────────────── PIN DEFINITIONS ───────────────────────
-#define RELAY_IGNITION    D0    // Relay 1: Ignition circuit
-#define RELAY_STARTER     D1    // Relay 2: Starter motor
-#define BUZZER_PIN        D2    // Piezo buzzer
-#define LED_GREEN         D3    // Green LED - Unlocked
-#define LED_RED           D4    // Red LED - Locked
-#define VIBRATION_SENSOR  D5    // SW-420 Vibration sensor (optional)
+#define RELAY_IGNITION    16    // Relay 1: Ignition circuit
+#define RELAY_STARTER     5     // Relay 2: Starter motor
+#define BUZZER_PIN        4     // Piezo buzzer
+#define LED_GREEN         18    // Green LED - Unlocked
+#define LED_RED           19    // Red LED - Locked
+#define VIBRATION_SENSOR  21    // SW-420 Vibration sensor (optional)
 
 // ─────────────────────── CONFIGURATION ─────────────────────────
 #define DEFAULT_PIN           "1234"        // Default security PIN
